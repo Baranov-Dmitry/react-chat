@@ -12,55 +12,52 @@ interface UserFromDB {
 
 const Search = () => {
 
-  // TODO: мне нужно изменить несколько состояний userName и users можно переписать на reducer - проверить переписать
-  // Можно добавить анимацию скрывания и добовления пользователей в search 
-
-  const [userName, setUserName] = useState("")
-  const [users, setUsers] = useState<Array<UserFromDB>>([])
-  const [err, setErr] = useState(false)
+  const [state, setSearchObj] = useState({ name: "", error: "", users: [] as Array<UserFromDB> })
 
   const currentUser = useContext(AuthContext)
 
-  const buttonVisible = !!userName.length
-
-  console.log(buttonVisible);
+  const buttonVisible = !!state.name.length
 
   const searchInDB = async () => {
-    if (userName.length <= 3) return;
 
-    const q = query(collection(db, "users"), where("displayName", "==", userName), where("uid", "!=", currentUser?.uid))
+    const q = query(collection(db, "users"), where("displayName", "==", state.name), where("uid", "!=", currentUser?.uid))
+
     try {
-      const users = await getDocs(q)
       const array: Array<UserFromDB> = [];
+      const users = await getDocs(q)
 
       users.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        console.log(" => ", doc.data());
         array.push(doc.data() as UserFromDB)
       });
 
-      array.length && setUsers(array)
+      console.log(array.length)
+      array.length !== 0
+        ? setSearchObj(state => ({ ...state, users: array }))
+        : setSearchObj(state => ({ ...state, users: [], error: "User Not found!!!" }));
 
     } catch (error) {
       console.log(error);
-      setErr(true)
+      setSearchObj(state => ({ ...state, error: error as string }));
     }
 
   }
 
   const handleClearButton = () => {
-    // TODO: два обнавления состояние это не врено второй обдейт проебеться
-    setUserName("");
-    setUsers([]);
+    setSearchObj((state) => ({ ...state, users: [], name: "", error: "" }))
   }
 
   const handleKeyDawn = (e: React.KeyboardEvent<HTMLElement>) => {
-    e.key === "Enter" && searchInDB()
+    if (e.key !== "Enter") return;
+    if (state.name.length <= 4) {
+      setSearchObj(state => ({ ...state, error: "Please enter at least 4 character" }));
+      return;
+    } else {
+      searchInDB()
+    }
   }
 
   const handleSelectUser = async (user: UserFromDB) => {
     if (!currentUser) return
-    console.log(currentUser.uid, user.uid);
 
     /*
       создать коллекцию по id + id и массива сообщенией
@@ -69,7 +66,7 @@ const Search = () => {
       currentUser.uid > user.uid
         ? currentUser.uid + user.uid
         : user.uid + currentUser.uid
-    console.log(combinedId);
+
     try {
 
       // получаем документ по комбинированому uid в "chats" храняться сообщения между двумя пользователями
@@ -83,7 +80,7 @@ const Search = () => {
         await setDoc(doc(db, "chats", combinedId), { messages: [] })
 
         // если нет документа в массиве "chats" значит нет и информации о их переписке в "userChat"
-        // их нужно создать для обоих
+        // их нужно создать для обоих пользователей TODO: Переписать на промис олл
         await updateDoc(doc(db, "userChat", currentUser.uid), {
           [combinedId + ".userInfo"]: {
             uid: user.uid,
@@ -106,6 +103,7 @@ const Search = () => {
 
     } catch (error) {
       console.log("handleSelectUser ", error);
+      setSearchObj(state => ({ ...state, error: error as string }))
     }
 
 
@@ -118,19 +116,18 @@ const Search = () => {
         <input
           type="text"
           placeholder="Find a user"
-          value={userName}
+          value={state.name}
           onKeyDown={handleKeyDawn}
-          onChange={(e) => setUserName(e.target.value)}
+          onChange={(e) => { setSearchObj((state) => ({ ...state, name: e.target.value, error: "" })) }}
         />
         {buttonVisible && <button onClick={handleClearButton}>X</button>}
       </div>
-      {users.map(user => <User key={user.uid} handleClick={handleSelectUser} user={user} displayName={user.displayName} photoURL={user.photoURL} />)}
-      {err === true && <span className='search__error'>User not found!</span>}
+      {state.users.map(user => <User key={user.uid} handleClick={handleSelectUser} user={user} displayName={user.displayName} photoURL={user.photoURL} />)}
+      {state.error && <span className='search__error'>{state.error}</span>}
     </div >
   );
 }
 
-//const User = ({ fn, uid, displayName, photoURL }: { fn: (val: string) => void, uid: string, displayName: string, photoURL: string }) => {
 const User = ({ user, photoURL, displayName, handleClick }: { user: UserFromDB, photoURL: string, displayName: string, handleClick: (val: UserFromDB) => void }) => {
   return (
     <div className="userChat" onClick={() => handleClick(user)} >

@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, Timestamp } from 'firebase/firestore'
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore'
 import React, { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { ChatContext } from '../context/ChatContext'
@@ -7,15 +7,14 @@ import Message from './Message'
 
 export interface MessageDB {
   uid: string,
-  text: string,
+  text?: string,
   senderId: string,
   time: Timestamp,
-  image: string
+  image?: string
 }
 
 const Messages = () => {
 
-  const currentUser = useContext(AuthContext)
   const { state } = useContext(ChatContext)
 
   const [messages, setMessages] = useState<Array<MessageDB>>([])
