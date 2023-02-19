@@ -1,6 +1,5 @@
 import { doc, onSnapshot, Timestamp } from 'firebase/firestore'
-import React, { useContext, useEffect, useState } from 'react'
-import { AuthContext } from '../context/AuthContext'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { ChatContext } from '../context/ChatContext'
 import { db } from '../firebase'
 import Message from './Message'
@@ -19,13 +18,6 @@ const Messages = () => {
 
   const [messages, setMessages] = useState<Array<MessageDB>>([])
 
-  // нужно получить массив сообщений через useEffect - true
-  // Вывести сообщения на экран - true
-  // в инпуте написать логику нового сообщения отправить на сервер
-  // должно быть 2 поля изображение и сообщение
-  // В списке чатов нужно отобразить последнее сообщение
-  // для этого при добовлениее нового сообщения обновить lastMessage в userChats
-
   useEffect(() => {
     if (state.chatID === "null") return;
 
@@ -42,10 +34,43 @@ const Messages = () => {
     }
   }, [state.chatID])
 
+  // useEffect(() => {
+  //   console.log("focusRef", focusRef.current)
+  //   if (focusRef.current === null) return
+
+  //   setTimeout(() => {
+  //     focusRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  //   }, 1)
+
+  // })
+
   return (
     <div className="messages">
-      {messages.map(msg => <Message key={msg.uid} message={msg} />)}
+      {messages.length
+        ? <>
+          {messages.map((msg, index) => <Message key={msg.uid} message={msg}
+            last={messages.length - 1 === index ? true : false}
+          />)}
+          <FocusOnThis />
+        </>
+        : <div className="messages__empty-history">Message history is empty</div>}
     </div>
+  )
+}
+
+function FocusOnThis() {
+
+  const focusRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setTimeout(() => {
+      focusRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 500)
+
+  })
+
+  return (
+    <div ref={focusRef} ></div>
   )
 }
 

@@ -50,7 +50,8 @@ export const ChatContextProvider = ({ children }: any) => {
               ? currentUser.uid + action.payload.uid
               : action.payload.uid + currentUser.uid,
           uid: action.payload.uid,
-          displayName: action.payload.displayName
+          displayName: action.payload.displayName,
+          photoURL: action.payload.photoURL
         };
       default:
         return state;
